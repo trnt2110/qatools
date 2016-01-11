@@ -32,7 +32,7 @@ Download nessesary tools:
 * chmod +x phpcs.phar
 * sudo mv phpcs.phar /usr/local/bin/phpcs
 
-# 6. Download phpcbf
+# 7. Download phpcbf
 * curl -OL https://squizlabs.github.io/PHP_CodeSniffer/phpcbf.phar
 * chmod +x phpcbf.phar
 * sudo mv phpcbf.phar /usr/local/bin/phpcbf
