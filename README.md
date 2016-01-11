@@ -36,3 +36,7 @@ Download nessesary tools:
 * curl -OL https://squizlabs.github.io/PHP_CodeSniffer/phpcbf.phar
 * chmod +x phpcbf.phar
 * sudo mv phpcbf.phar /usr/local/bin/phpcbf
+
+# 8. Copy pre-commit file into project
+* cp pre-commit .git/hooks/
+
