@@ -8,9 +8,14 @@ Download nessesary tools:
 
 * sudo mv php-cs-fixer bin/php-cs-fixer
 
-# 1. Download phpmd
+# 2. Download phpmd
 * wget -c http://static.phpmd.org/php/latest/phpmd.phar
 
 * sudo chmod +x phpmd.phar
 
 * sudo mv phpmd.phar /usr/local/bin/phpmd
+
+# 2. Download phpdcd
+* wget https://phar.phpunit.de/phpdcd.phar
+* chmod +x phpdcd.phar
+* mv phpdcd.phar /usr/local/bin/phpdcd
