@@ -1,0 +1,442 @@
+#!/usr/bin/php
+<?php
+
+require __DIR__ . '/../../vendor/autoload.php';
+
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Process\ProcessBuilder;
+use Symfony\Component\Console\Application;
+
+class CodeQualityTool extends Application
+{
+    private $output;
+    private $input;
+
+    const PHP_FILES_IN_SRC = '/^src\/(.*)(\.php)$/';
+    const PHP_FILES_IN_CLASSES = '/^classes\/(.*)(\.php)$/';
+
+    public function __construct()
+    {
+        parent::__construct('CODE QUALITY TOOL', '1.0.0');
+    }
+
+    public function doRun(InputInterface $input, OutputInterface $output)
+    {
+        $this->input = $input;
+        $this->output = $output;
+
+        $isException = false;
+
+        $output->writeln('<fg=white;options=bold;bg=red>CODE QUALITY TOOL</fg=white;options=bold;bg=red>');
+        $output->writeln('<info>Fetching files</info>');
+        $files = $this->extractCommitedFiles();
+
+        $output->writeln('<info>Check composer</info>');
+        $this->checkComposer($files);
+
+        $output->writeln('<info>Running PHPLint</info>');
+        if (!$this->phpLint($files)) {
+            $isException = true;
+            sprintf('There are some PHP syntax errors!');
+        }
+
+        $output->writeln('<info>Checking code beautiful style</info>');
+        if (!$this->codeBeautifulFormat($files)) {
+            $isException = true;
+            sprintf('There are coding not beautiful!');
+        }
+
+        $output->writeln('<info>Checking code style</info>');
+        if (!$this->codeStyle($files)) {
+            $isException = true;
+            sprintf('There are coding standards violations!');
+        }
+
+        $output->writeln('<info>Checking PHP Coding Standards Fixer</info>');
+        if (!$this->codeStylePsr($files)) {
+            $isException = true;
+            sprintf('There are PHPCS coding standards violations!');
+        }
+
+        $output->writeln('<info>Checking PHP Mess Detector</info>');
+        if (!$this->phPmd($files)) {
+            $isException = true;
+            sprintf('There are PHPMD violations!');
+        }
+
+        $output->writeln('<info>Checking code with PHPLOC</info>');
+        if (!$this->phPloc($files)) {
+            $isException = true;
+            sprintf('There are PHPLOC violations!');
+        }
+
+        $output->writeln('<info>Checking Dead Code Detector (DCD)</info>');
+        if (!$this->phPdcd($files)) {
+            $isException = true;
+            sprintf('There are PHPDCD violations!');
+        }
+
+        $output->writeln('<info>Checking Copy/Paste Detector (CPD)</info>');
+        if (!$this->phPcpd($files)) {
+            $isException = true;
+            sprintf('There are PHPCPD violations!');
+        }
+
+        $output->writeln('<info>Checking Php Documentor</info>');
+        if (!$this->phPdoc($files)) {
+            $isException = true;
+            sprintf('There are Php Documentor violations!');
+        }
+
+        $output->writeln('<info>Checking Php Depend</info>');
+        if (!$this->phPdepend($files)) {
+            $isException = true;
+            sprintf('There are Php Depend violations!');
+        }
+
+        if ($isException) {
+            throw new Exception('Fix the violations above!');
+        }
+
+        $output->writeln('<info>Good job dude!</info>');
+    }
+
+    private function checkComposer($files)
+    {
+        $composerJsonDetected = false;
+        $composerLockDetected = false;
+
+        foreach ($files as $file) {
+            if ($file === 'composer.json') {
+                $composerJsonDetected = true;
+            }
+
+            if ($file === 'composer.lock') {
+                $composerLockDetected = true;
+            }
+        }
+
+        if ($composerJsonDetected && !$composerLockDetected) {
+            throw new Exception('composer.lock must be commited if composer.json is modified!');
+        }
+    }
+
+    private function extractCommitedFiles()
+    {
+        $output = array();
+        $rc = 0;
+
+        exec('git rev-parse --verify HEAD 2> /dev/null', $output, $rc);
+
+        $against = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
+        if ($rc == 0) {
+            $against = 'HEAD';
+        }
+
+        exec("git diff-index --cached --name-status $against | egrep '^(A|M)' | awk '{print $2;}'", $output);
+
+        return $output;
+    }
+
+    private function phpLint($files)
+    {
+        $needle = '/(\.php)|(\.inc)$/';
+        $succeed = true;
+        $rootPath = realpath(__DIR__ . '/../../');
+
+        foreach ($files as $file) {
+            if (!preg_match($needle, $file)) {
+                continue;
+            }
+
+            $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/lint', $file));
+            $processBuilder->setWorkingDirectory($rootPath);
+            $process = $processBuilder->getProcess();
+            $process->run();
+
+            if (!$process->isSuccessful()) {
+                $this->output->writeln($file);
+                $this->output->writeln(sprintf('<error>%s</error>', trim($process->getErrorOutput())));
+
+                if ($succeed) {
+                    $succeed = false;
+                }
+            }
+        }
+
+        return $succeed;
+    }
+
+    private function phPmd($files)
+    {
+        $needle = self::PHP_FILES_IN_SRC;
+        $succeed = true;
+        $rootPath = realpath(__DIR__ . '/../../');
+
+        foreach ($files as $file) {
+            if (!preg_match($needle, $file)) {
+                continue;
+            }
+
+            $processBuilder = new ProcessBuilder(['php', '/usr/local/bin/phpmd', $file, 'text', 'controversial']);
+            $processBuilder->setWorkingDirectory($rootPath);
+            $process = $processBuilder->getProcess();
+            $process->run();
+
+            if (!$process->isSuccessful()) {
+                $this->output->writeln($file);
+                $this->output->writeln(sprintf('<error>%s</error>', trim($process->getErrorOutput())));
+                $this->output->writeln(sprintf('<info>%s</info>', trim($process->getOutput())));
+                if ($succeed) {
+                    $succeed = false;
+                }
+            }
+        }
+
+        return $succeed;
+    }
+
+    private function codeStyle(array $files)
+    {
+        $succeed = true;
+        $rootPath = realpath(__DIR__ . '/../../');
+
+        foreach ($files as $file) {
+            $classesFile = preg_match(self::PHP_FILES_IN_CLASSES, $file);
+            $srcFile = preg_match(self::PHP_FILES_IN_SRC, $file);
+
+            if (!$classesFile && !$srcFile) {
+                continue;
+            }
+
+            $fixers = '-psr0';
+            if ($classesFile) {
+                $fixers = 'eof_ending,indentation,linefeed,lowercase_keywords,trailing_spaces,short_tag,php_closing_tag,extra_empty_lines,elseif,function_declaration';
+            }
+            // $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/php-cs-fixer', '--dry-run', '--verbose', 'fix', $file, '--fixers='.$fixers));
+            $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/php-cs-fixer', '--verbose', 'fix', $file, '--fixers='.$fixers));
+
+            $processBuilder->setWorkingDirectory($rootPath);
+            $phpCsFixer = $processBuilder->getProcess();
+            $phpCsFixer->run();
+
+            if (!$phpCsFixer->isSuccessful()) {
+                $this->output->writeln(sprintf('<error>%s</error>', trim($phpCsFixer->getOutput())));
+                $this->output->writeln(sprintf('<info>%s</info>', trim($phpCsFixer->getOutput())));
+
+                if ($succeed) {
+                    $succeed = false;
+                }
+            }
+        }
+
+        return $succeed;
+    }
+
+    private function codeStylePsr(array $files)
+    {
+        $succeed = true;
+        $needle = self::PHP_FILES_IN_SRC;
+        $rootPath = realpath(__DIR__ . '/../../');
+
+        foreach ($files as $file) {
+            if (!preg_match($needle, $file)) {
+                continue;
+            }
+
+            $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/phpcs', '--standard=PSR2', $file));
+            $processBuilder->setWorkingDirectory($rootPath);
+            $phpCsFixer = $processBuilder->getProcess();
+            $phpCsFixer->run();
+
+            if (!$phpCsFixer->isSuccessful()) {
+                $this->output->writeln(sprintf('<error>%s</error>', trim($phpCsFixer->getOutput())));
+
+                if ($succeed) {
+                    $succeed = false;
+                }
+            }
+        }
+
+        return $succeed;
+    }
+
+    private function codeBeautifulFormat(array $files)
+    {
+        $succeed = true;
+        $needle = self::PHP_FILES_IN_SRC;
+        $rootPath = realpath(__DIR__ . '/../../');
+
+        foreach ($files as $file) {
+            if (!preg_match($needle, $file)) {
+                continue;
+            }
+
+            $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/phpcbf', '--standard=PSR2', $file));
+
+            $processBuilder->setWorkingDirectory($rootPath);
+            $phpCbf = $processBuilder->getProcess();
+            $phpCbf->run();
+
+            if (!$phpCbf->isSuccessful()) {
+                $this->output->writeln(sprintf('<error>%s</error>', trim($phpCbf->getErrorOutput())));
+                $this->output->writeln(sprintf('<info>%s</info>', trim($phpCbf->getOutput())));
+
+                if ($succeed) {
+                    $succeed = false;
+                }
+            }
+        }
+
+        return $succeed;
+    }
+
+    private function phPloc(array $files)
+    {
+        $succeed = true;
+        $needle = self::PHP_FILES_IN_SRC;
+        $rootPath = realpath(__DIR__ . '/../../');
+
+        foreach ($files as $file) {
+            if (!preg_match($needle, $file)) {
+                continue;
+            }
+
+            $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/phploc', $file));
+
+            $processBuilder->setWorkingDirectory($rootPath);
+            $phpLoc = $processBuilder->getProcess();
+            $phpLoc->run();
+
+            if (!$phpLoc->isSuccessful()) {
+                $this->output->writeln(sprintf('<error>%s</error>', trim($phpLoc->getOutput())));
+
+                if ($succeed) {
+                    $succeed = false;
+                }
+            }
+        }
+
+        return $succeed;
+    }
+
+    private function phPdcd(array $files)
+    {
+        $succeed = true;
+        $needle = self::PHP_FILES_IN_SRC;
+        $rootPath = realpath(__DIR__ . '/../../');
+
+        foreach ($files as $file) {
+            if (!preg_match($needle, $file)) {
+                continue;
+            }
+
+            $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/phpdcd', $file));
+
+            $processBuilder->setWorkingDirectory($rootPath);
+            $phpLoc = $processBuilder->getProcess();
+            $phpLoc->run();
+
+            if (!$phpLoc->isSuccessful()) {
+                $this->output->writeln(sprintf('<error>%s</error>', trim($phpLoc->getOutput())));
+
+                if ($succeed) {
+                    $succeed = false;
+                }
+            }
+        }
+
+        return $succeed;
+    }
+
+    private function phPcpd(array $files)
+    {
+        $succeed = true;
+        $needle = self::PHP_FILES_IN_SRC;
+        $rootPath = realpath(__DIR__ . '/../../');
+
+        foreach ($files as $file) {
+            if (!preg_match($needle, $file)) {
+                continue;
+            }
+
+            $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/phpcpd', $file));
+
+            $processBuilder->setWorkingDirectory($rootPath);
+            $phpLoc = $processBuilder->getProcess();
+            $phpLoc->run();
+
+            if (!$phpLoc->isSuccessful()) {
+                $this->output->writeln(sprintf('<error>%s</error>', trim($phpLoc->getOutput())));
+
+                if ($succeed) {
+                    $succeed = false;
+                }
+            }
+        }
+
+        return $succeed;
+    }
+
+    private function phPdoc(array $files)
+    {
+        $succeed = true;
+        $needle = self::PHP_FILES_IN_SRC;
+        $rootPath = realpath(__DIR__ . '/../../');
+
+        foreach ($files as $file) {
+            if (!preg_match($needle, $file)) {
+                continue;
+            }
+
+            $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/phpdoc', $file));
+
+            $processBuilder->setWorkingDirectory($rootPath);
+            $phpDoc = $processBuilder->getProcess();
+            $phpDoc->run();
+
+            if (!$phpDoc->isSuccessful()) {
+                $this->output->writeln(sprintf('<error>%s</error>', trim($phpDoc->getOutput())));
+
+                if ($succeed) {
+                    $succeed = false;
+                }
+            }
+        }
+
+        return $succeed;
+    }
+
+    private function phPdepend(array $files)
+    {
+        $succeed = true;
+        $needle = self::PHP_FILES_IN_SRC;
+        $rootPath = realpath(__DIR__ . '/../../');
+
+        foreach ($files as $file) {
+            if (!preg_match($needle, $file)) {
+                continue;
+            }
+
+            $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/pdepend', $file));
+
+            $processBuilder->setWorkingDirectory($rootPath);
+            $pdepend = $processBuilder->getProcess();
+            $pdepend->run();
+
+            if (!$pdepend->isSuccessful()) {
+                $this->output->writeln(sprintf('<error>%s</error>', trim($pdepend->getOutput())));
+
+                if ($succeed) {
+                    $succeed = false;
+                }
+            }
+        }
+
+        return $succeed;
+    }
+}
+
+$console = new CodeQualityTool();
+$console->run();
