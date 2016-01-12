@@ -5,7 +5,7 @@ Download nessesary tools:
 
 # 1. php-cs-fixer
 * wget http://get.sensiolabs.org/php-cs-fixer.phar -O php-cs-fixer
-* sudo mv php-cs-fixer bin/php-cs-fixer
+* sudo mv php-cs-fixer /usr/local/bin/php-cs-fixer
 
 # 2. phpmd
 * wget -c http://static.phpmd.org/php/latest/phpmd.phar
@@ -38,5 +38,5 @@ Download nessesary tools:
 * sudo mv phpcbf.phar /usr/local/bin/phpcbf
 
 # 8. Copy pre-commit file into project
-* cp pre-commit .git/hooks/
+* cp pre-commit [your project]/.git/hooks/
 
