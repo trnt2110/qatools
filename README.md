@@ -38,3 +38,14 @@ Download nessesary tools:
 * cp pre-commit [your project]/.git/hooks/
 * edit code & commit. The qatools automatic check with above tools
 
+# 8. References
+* php-cs-fixer
+http://cs.sensiolabs.org/
+* php-cs & phpcbf
+https://github.com/squizlabs/PHP_CodeSniffer
+* phpmd
+http://phpmd.org/
+* phpdcd
+https://github.com/sebastianbergmann/phpdcd
+* phpcpd
+https://github.com/sebastianbergmann/phpcpd
