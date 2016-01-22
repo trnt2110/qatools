@@ -65,12 +65,6 @@ class CodeQualityTool extends Application
             sprintf('There are PHPMD violations!');
         }
 
-        $output->writeln('<info>Checking code with PHPLOC</info>');
-        if (!$this->phPloc($files)) {
-            $isException = true;
-            sprintf('There are PHPLOC violations!');
-        }
-
         $output->writeln('<info>Checking Dead Code Detector (DCD)</info>');
         if (!$this->phPdcd($files)) {
             $isException = true;
@@ -271,33 +265,6 @@ class CodeQualityTool extends Application
 
             if (!$phpCbf->isSuccessful()) {
                 $this->output->writeln(sprintf('<error>%s</error>', trim($phpCbf->getErrorOutput())));
-
-                $succeed = false;
-            }
-        }
-
-        return $succeed;
-    }
-
-    private function phPloc(array $files)
-    {
-        $succeed = true;
-        $needle = self::PHP_FILES_IN_SRC;
-        $rootPath = realpath(__DIR__ . '/../../');
-
-        foreach ($files as $file) {
-            if (!preg_match($needle, $file)) {
-                continue;
-            }
-
-            $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/phploc', $file));
-
-            $processBuilder->setWorkingDirectory($rootPath);
-            $phpLoc = $processBuilder->getProcess();
-            $phpLoc->run();
-
-            if (!$phpLoc->isSuccessful()) {
-                $this->output->writeln(sprintf('<error>%s</error>', trim($phpLoc->getErrorOutput())));
 
                 $succeed = false;
             }
