@@ -36,5 +36,5 @@ Download nessesary tools:
 * git clone git@github.com/thangnvaltplus/qatools.git
 * cd qatools
 * cp pre-commit [your project]/.git/hooks/
-* edit code & commit. The qatools automatic check with below tools
+* edit code & commit. The qatools automatic check with above tools
 
