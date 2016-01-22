@@ -22,22 +22,17 @@ Download nessesary tools:
 * chmod +x phpcpd.phar
 * sudo mv phpcpd.phar /usr/local/bin/phpcpd
 
-# 5. phploc
-* wget https://phar.phpunit.de/phploc.phar
-* chmod +x phploc.phar
-* mv phploc.phar /usr/local/bin/phploc
-
-# 6. phpcs
+# 5. phpcs
 * curl -OL https://squizlabs.github.io/PHP_CodeSniffer/phpcs.phar
 * chmod +x phpcs.phar
 * sudo mv phpcs.phar /usr/local/bin/phpcs
 
-# 7. phpcbf
+# 6. phpcbf
 * curl -OL https://squizlabs.github.io/PHP_CodeSniffer/phpcbf.phar
 * chmod +x phpcbf.phar
 * sudo mv phpcbf.phar /usr/local/bin/phpcbf
 
-# 8. How to run
+# 7. How to run
 * git clone git@github.com/thangnvaltplus/qatools.git
 * cd qatools
 * cp pre-commit [your project]/.git/hooks/
