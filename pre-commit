@@ -14,7 +14,6 @@ class CodeQualityTool extends Application
     private $input;
 
     const PHP_FILES_IN_SRC = '/^src\/(.*)(\.php)$/';
-    const PHP_FILES_IN_CLASSES = '/^classes\/(.*)(\.php)$/';
 
     public function __construct()
     {
@@ -203,10 +202,9 @@ class CodeQualityTool extends Application
         $rootPath = realpath(__DIR__ . '/../../');
 
         foreach ($files as $file) {
-            $classesFile = preg_match(self::PHP_FILES_IN_CLASSES, $file);
             $srcFile = preg_match(self::PHP_FILES_IN_SRC, $file);
 
-            if (!$classesFile && !$srcFile) {
+            if (!$srcFile) {
                 continue;
             }
 
@@ -214,7 +212,7 @@ class CodeQualityTool extends Application
             if ($classesFile) {
                 $fixers = 'eof_ending,indentation,linefeed,lowercase_keywords,trailing_spaces,short_tag,php_closing_tag,extra_empty_lines,elseif,function_declaration';
             }
-            // $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/php-cs-fixer', '--dry-run', '--verbose', 'fix', $file, '--fixers='.$fixers));
+
             $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/php-cs-fixer', '--verbose', 'fix', $file, '--fixers='.$fixers));
 
             $processBuilder->setWorkingDirectory($rootPath);
