@@ -144,12 +144,12 @@ class CodeQualityTool extends Application
                 continue;
             }
 
-            $processBuilder = new ProcessBuilder(array('php', '-l', $file));
+            $processBuilder = new ProcessBuilder(array('/usr/bin/php', '-l', $file));
             $processBuilder->setWorkingDirectory($rootPath);
             $process = $processBuilder->getProcess();
             $process->run();
 
-            if (!$process->isSuccessful()) {
+            if (!empty($process->isSuccessful()) && $process->isSuccessful() == false) {
                 $this->output->writeln(sprintf('<error>%s</error>', trim($process->getErrorOutput())));
 
                 $succeed = false;
@@ -170,13 +170,13 @@ class CodeQualityTool extends Application
                 continue;
             }
 
-            $processBuilder = new ProcessBuilder(['php', '/usr/local/bin/phpmd', $file, 'text', 'codesize,unusedcode,naming']);
+            $processBuilder = new ProcessBuilder(['/usr/bin/php', '/usr/local/bin/phpmd', $file, 'text', 'codesize,unusedcode,naming']);
             $processBuilder->setWorkingDirectory($rootPath);
             $process = $processBuilder->getProcess();
             $process->run();
 
-            if (!$process->isSuccessful()) {
-                $this->output->writeln(sprintf('<error>%s</error>', trim($process->getOutput())));
+            if (!empty($process->isSuccessful()) && $process->isSuccessful() == false) {
+                $this->output->writeln(sprintf('<error>%s</error>', trim($process->getErrorOutput())));
 
                 $succeed = false;
             }
@@ -191,27 +191,25 @@ class CodeQualityTool extends Application
         $rootPath = realpath(__DIR__ . '/../../');
 
         foreach ($files as $file) {
-            $classesFile = preg_match(self::PHP_FILES_IN_CLASSES, $file);
             $srcFile = preg_match(self::PHP_FILES_IN_SRC, $file);
 
-            if (!$classesFile && !$srcFile) {
+            if (!$srcFile) {
                 continue;
             }
 
-            $fixers = '-psr0,prs1,psr2,symfony';
-            if ($classesFile) {
+            $fixers = '-psr0';
+            if ($srcFile) {
                 $fixers = 'eof_ending,indentation,linefeed,lowercase_keywords,trailing_spaces,short_tag,php_closing_tag,extra_empty_lines,elseif,function_declaration';
             }
 
-            $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/php-cs-fixer', '--verbose', 'fix', $file, '--fixers='.$fixers));
+            $processBuilder = new ProcessBuilder(array('/usr/bin/php', '/usr/local/bin/php-cs-fixer', '--verbose', 'fix', $file, '--fixers='.$fixers));
 
             $processBuilder->setWorkingDirectory($rootPath);
-            $phpCsFixer = $processBuilder->getProcess();
-            $phpCsFixer->run();
+            $process = $processBuilder->getProcess();
+            $process->run();
 
-            if (!$phpCsFixer->isSuccessful()) {
-                $this->output->writeln(sprintf('<error>%s</error>', trim($phpCsFixer->getErrorOutput())));
-                $this->output->writeln(sprintf('<info>%s</info>', trim($phpCsFixer->getErrorOutput())));
+            if (!empty($process->isSuccessful()) && $process->isSuccessful() == false) {
+                $this->output->writeln(sprintf('<error>%s</error>', trim($process->getErrorOutput())));
 
                 $succeed = false;
             }
@@ -231,13 +229,13 @@ class CodeQualityTool extends Application
                 continue;
             }
 
-            $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/phpcs', '--standard=PSR2', $file));
+            $processBuilder = new ProcessBuilder(array('/usr/bin/php', '/usr/local/bin/phpcs', '--standard=PSR2', $file));
             $processBuilder->setWorkingDirectory($rootPath);
-            $phpCsFixer = $processBuilder->getProcess();
-            $phpCsFixer->run();
+            $process = $processBuilder->getProcess();
+            $process->run();
 
-            if (!$phpCsFixer->isSuccessful()) {
-                $this->output->writeln(sprintf('<error>%s</error>', trim($phpCsFixer->getErrorOutput())));
+            if (!empty($process->isSuccessful()) && $process->isSuccessful() == false) {
+                $this->output->writeln(sprintf('<error>%s</error>', trim($process->getErrorOutput())));
 
                 $succeed = false;
             }
@@ -257,14 +255,14 @@ class CodeQualityTool extends Application
                 continue;
             }
 
-            $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/phpcbf', $file));
+            $processBuilder = new ProcessBuilder(array('/usr/bin/php', '/usr/local/bin/phpcbf', '--no-patch', $file));
 
             $processBuilder->setWorkingDirectory($rootPath);
-            $phpCbf = $processBuilder->getProcess();
-            $phpCbf->run();
+            $process = $processBuilder->getProcess();
+            $process->run();
 
-            if (!$phpCbf->isSuccessful()) {
-                $this->output->writeln(sprintf('<error>%s</error>', trim($phpCbf->getErrorOutput())));
+            if (!empty($process->isSuccessful()) && $process->isSuccessful() == false) {
+                $this->output->writeln(sprintf('<error>%s</error>', trim($process->getErrorOutput())));
 
                 $succeed = false;
             }
@@ -284,14 +282,14 @@ class CodeQualityTool extends Application
                 continue;
             }
 
-            $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/phpdcd', $file));
+            $processBuilder = new ProcessBuilder(array('/usr/bin/php', '/usr/local/bin/phpdcd', $file));
 
             $processBuilder->setWorkingDirectory($rootPath);
-            $phpLoc = $processBuilder->getProcess();
-            $phpLoc->run();
+            $process = $processBuilder->getProcess();
+            $process->run();
 
-            if (!$phpLoc->isSuccessful()) {
-                $this->output->writeln(sprintf('<error>%s</error>', trim($phpLoc->getErrorOutput())));
+            if (!empty($process->isSuccessful()) && $process->isSuccessful() == false) {
+                $this->output->writeln(sprintf('<error>%s</error>', trim($process->getErrorOutput())));
 
                 $succeed = false;
             }
@@ -311,14 +309,14 @@ class CodeQualityTool extends Application
                 continue;
             }
 
-            $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/phpcpd', $file));
+            $processBuilder = new ProcessBuilder(array('/usr/bin/php', '/usr/local/bin/phpcpd', $file));
 
             $processBuilder->setWorkingDirectory($rootPath);
-            $phpLoc = $processBuilder->getProcess();
-            $phpLoc->run();
+            $process = $processBuilder->getProcess();
+            $process->run();
 
-            if (!$phpLoc->isSuccessful()) {
-                $this->output->writeln(sprintf('<error>%s</error>', trim($phpLoc->getErrorOutput())));
+            if (!empty($process->isSuccessful()) && $process->isSuccessful() == false) {
+                $this->output->writeln(sprintf('<error>%s</error>', trim($process->getErrorOutput())));
 
                 $succeed = false;
             }
@@ -338,14 +336,14 @@ class CodeQualityTool extends Application
                 continue;
             }
 
-            $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/phpdoc', $file));
+            $processBuilder = new ProcessBuilder(array('/usr/bin/php', '/usr/local/bin/phpdoc', $file));
 
             $processBuilder->setWorkingDirectory($rootPath);
-            $phpDoc = $processBuilder->getProcess();
-            $phpDoc->run();
+            $process = $processBuilder->getProcess();
+            $process->run();
 
-            if (!$phpDoc->isSuccessful()) {
-                $this->output->writeln(sprintf('<error>%s</error>', trim($phpDoc->getErrorOutput())));
+            if (!empty($process->isSuccessful()) && $process->isSuccessful() == false) {
+                $this->output->writeln(sprintf('<error>%s</error>', trim($process->getErrorOutput())));
 
                 $succeed = false;
             }
@@ -365,14 +363,14 @@ class CodeQualityTool extends Application
                 continue;
             }
 
-            $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/pdepend', $file));
+            $processBuilder = new ProcessBuilder(array('/usr/bin/php', '/usr/local/bin/pdepend', $file));
 
             $processBuilder->setWorkingDirectory($rootPath);
-            $pdepend = $processBuilder->getProcess();
-            $pdepend->run();
+            $process = $processBuilder->getProcess();
+            $process->run();
 
-            if (!$pdepend->isSuccessful()) {
-                $this->output->writeln(sprintf('<error>%s</error>', trim($pdepend->getErrorOutput())));
+            if (!empty($process->isSuccessful()) && $process->isSuccessful() == false) {
+                $this->output->writeln(sprintf('<error>%s</error>', trim($process->getErrorOutput())));
 
                 $succeed = false;
             }
@@ -393,7 +391,7 @@ class CodeQualityTool extends Application
                 continue;
             }
 
-            exec("/usr/bin/grep -H -i -n -E {$badWords} $file 2>&1", $result, $retVal);
+            exec("/bin/grep -H -i -n -E {$badWords} $file 2>&1", $result, $retVal);
             if (!$retVal) {
                 foreach ($result as $line) {
                     $this->output->writeln(sprintf('<error>%s</error>', $line));
