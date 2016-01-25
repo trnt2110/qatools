@@ -33,9 +33,10 @@ Download nessesary tools:
 * sudo mv phpcbf.phar /usr/local/bin/phpcbf
 
 # 7. How to run
-* git clone git@github.com/thangnvaltplus/qatools.git
+* git clone https://github.com/thangnvaltplus/qatools.git
 * cd qatools
 * cp pre-commit [your project]/.git/hooks/
+* chmod +x [your project]/.git/hooks/pre-commit
 * edit code & commit. The qatools automatic check with above tools
 
 # 8. References
