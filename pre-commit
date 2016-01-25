@@ -41,13 +41,13 @@ class CodeQualityTool extends Application
             sprintf('There are some PHP syntax errors!');
         }
 
-        $output->writeln('<info>Checking code beautiful style</info>');
+        $output->writeln('<info>Checking Code Beautiful Style</info>');
         if (!$this->codeBeautifulFormat($files)) {
             $isException = true;
             sprintf('There are coding not beautiful!');
         }
 
-        $output->writeln('<info>Checking code style</info>');
+        $output->writeln('<info>Checking Code Style</info>');
         if (!$this->codeStyle($files)) {
             $isException = true;
             sprintf('There are coding standards violations!');
@@ -63,12 +63,6 @@ class CodeQualityTool extends Application
         if (!$this->phPmd($files)) {
             $isException = true;
             sprintf('There are PHPMD violations!');
-        }
-
-        $output->writeln('<info>Checking code with PHPLOC</info>');
-        if (!$this->phPloc($files)) {
-            $isException = true;
-            sprintf('There are PHPLOC violations!');
         }
 
         $output->writeln('<info>Checking Dead Code Detector (DCD)</info>');
@@ -89,10 +83,10 @@ class CodeQualityTool extends Application
             sprintf('There are Php Documentor violations!');
         }
 
-        $output->writeln('<info>Checking Php Depend</info>');
-        if (!$this->phPdepend($files)) {
+        $output->writeln('<info>Checking Bad Words</info>');
+        if (!$this->checkBadwords($files)) {
             $isException = true;
-            sprintf('There are Php Depend violations!');
+            sprintf('There are Checking Bad Words!');
         }
 
         if ($isException) {
@@ -150,18 +144,15 @@ class CodeQualityTool extends Application
                 continue;
             }
 
-            $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/lint', $file));
+            $processBuilder = new ProcessBuilder(array('php', '-l', $file));
             $processBuilder->setWorkingDirectory($rootPath);
             $process = $processBuilder->getProcess();
             $process->run();
 
             if (!$process->isSuccessful()) {
-                $this->output->writeln($file);
                 $this->output->writeln(sprintf('<error>%s</error>', trim($process->getErrorOutput())));
 
-                if ($succeed) {
-                    $succeed = false;
-                }
+                $succeed = false;
             }
         }
 
@@ -179,18 +170,15 @@ class CodeQualityTool extends Application
                 continue;
             }
 
-            $processBuilder = new ProcessBuilder(['php', '/usr/local/bin/phpmd', $file, 'text', 'controversial']);
+            $processBuilder = new ProcessBuilder(['php', '/usr/local/bin/phpmd', $file, 'text', 'codesize,unusedcode,naming']);
             $processBuilder->setWorkingDirectory($rootPath);
             $process = $processBuilder->getProcess();
             $process->run();
 
             if (!$process->isSuccessful()) {
-                $this->output->writeln($file);
-                $this->output->writeln(sprintf('<error>%s</error>', trim($process->getErrorOutput())));
-                $this->output->writeln(sprintf('<info>%s</info>', trim($process->getOutput())));
-                if ($succeed) {
-                    $succeed = false;
-                }
+                $this->output->writeln(sprintf('<error>%s</error>', trim($process->getOutput())));
+
+                $succeed = false;
             }
         }
 
@@ -210,11 +198,11 @@ class CodeQualityTool extends Application
                 continue;
             }
 
-            $fixers = '-psr0';
+            $fixers = '-psr0,prs1,psr2,symfony';
             if ($classesFile) {
                 $fixers = 'eof_ending,indentation,linefeed,lowercase_keywords,trailing_spaces,short_tag,php_closing_tag,extra_empty_lines,elseif,function_declaration';
             }
-            // $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/php-cs-fixer', '--dry-run', '--verbose', 'fix', $file, '--fixers='.$fixers));
+
             $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/php-cs-fixer', '--verbose', 'fix', $file, '--fixers='.$fixers));
 
             $processBuilder->setWorkingDirectory($rootPath);
@@ -222,12 +210,10 @@ class CodeQualityTool extends Application
             $phpCsFixer->run();
 
             if (!$phpCsFixer->isSuccessful()) {
-                $this->output->writeln(sprintf('<error>%s</error>', trim($phpCsFixer->getOutput())));
-                $this->output->writeln(sprintf('<info>%s</info>', trim($phpCsFixer->getOutput())));
+                $this->output->writeln(sprintf('<error>%s</error>', trim($phpCsFixer->getErrorOutput())));
+                $this->output->writeln(sprintf('<info>%s</info>', trim($phpCsFixer->getErrorOutput())));
 
-                if ($succeed) {
-                    $succeed = false;
-                }
+                $succeed = false;
             }
         }
 
@@ -251,11 +237,9 @@ class CodeQualityTool extends Application
             $phpCsFixer->run();
 
             if (!$phpCsFixer->isSuccessful()) {
-                $this->output->writeln(sprintf('<error>%s</error>', trim($phpCsFixer->getOutput())));
+                $this->output->writeln(sprintf('<error>%s</error>', trim($phpCsFixer->getErrorOutput())));
 
-                if ($succeed) {
-                    $succeed = false;
-                }
+                $succeed = false;
             }
         }
 
@@ -273,7 +257,7 @@ class CodeQualityTool extends Application
                 continue;
             }
 
-            $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/phpcbf', '--standard=PSR2', $file));
+            $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/phpcbf', $file));
 
             $processBuilder->setWorkingDirectory($rootPath);
             $phpCbf = $processBuilder->getProcess();
@@ -281,40 +265,8 @@ class CodeQualityTool extends Application
 
             if (!$phpCbf->isSuccessful()) {
                 $this->output->writeln(sprintf('<error>%s</error>', trim($phpCbf->getErrorOutput())));
-                $this->output->writeln(sprintf('<info>%s</info>', trim($phpCbf->getOutput())));
 
-                if ($succeed) {
-                    $succeed = false;
-                }
-            }
-        }
-
-        return $succeed;
-    }
-
-    private function phPloc(array $files)
-    {
-        $succeed = true;
-        $needle = self::PHP_FILES_IN_SRC;
-        $rootPath = realpath(__DIR__ . '/../../');
-
-        foreach ($files as $file) {
-            if (!preg_match($needle, $file)) {
-                continue;
-            }
-
-            $processBuilder = new ProcessBuilder(array('php', '/usr/local/bin/phploc', $file));
-
-            $processBuilder->setWorkingDirectory($rootPath);
-            $phpLoc = $processBuilder->getProcess();
-            $phpLoc->run();
-
-            if (!$phpLoc->isSuccessful()) {
-                $this->output->writeln(sprintf('<error>%s</error>', trim($phpLoc->getOutput())));
-
-                if ($succeed) {
-                    $succeed = false;
-                }
+                $succeed = false;
             }
         }
 
@@ -339,11 +291,9 @@ class CodeQualityTool extends Application
             $phpLoc->run();
 
             if (!$phpLoc->isSuccessful()) {
-                $this->output->writeln(sprintf('<error>%s</error>', trim($phpLoc->getOutput())));
+                $this->output->writeln(sprintf('<error>%s</error>', trim($phpLoc->getErrorOutput())));
 
-                if ($succeed) {
-                    $succeed = false;
-                }
+                $succeed = false;
             }
         }
 
@@ -368,11 +318,9 @@ class CodeQualityTool extends Application
             $phpLoc->run();
 
             if (!$phpLoc->isSuccessful()) {
-                $this->output->writeln(sprintf('<error>%s</error>', trim($phpLoc->getOutput())));
+                $this->output->writeln(sprintf('<error>%s</error>', trim($phpLoc->getErrorOutput())));
 
-                if ($succeed) {
-                    $succeed = false;
-                }
+                $succeed = false;
             }
         }
 
@@ -397,11 +345,9 @@ class CodeQualityTool extends Application
             $phpDoc->run();
 
             if (!$phpDoc->isSuccessful()) {
-                $this->output->writeln(sprintf('<error>%s</error>', trim($phpDoc->getOutput())));
+                $this->output->writeln(sprintf('<error>%s</error>', trim($phpDoc->getErrorOutput())));
 
-                if ($succeed) {
-                    $succeed = false;
-                }
+                $succeed = false;
             }
         }
 
@@ -426,11 +372,33 @@ class CodeQualityTool extends Application
             $pdepend->run();
 
             if (!$pdepend->isSuccessful()) {
-                $this->output->writeln(sprintf('<error>%s</error>', trim($pdepend->getOutput())));
+                $this->output->writeln(sprintf('<error>%s</error>', trim($pdepend->getErrorOutput())));
 
-                if ($succeed) {
-                    $succeed = false;
+                $succeed = false;
+            }
+        }
+
+        return $succeed;
+    }
+
+    private function checkBadwords(array $files)
+    {
+        $succeed = true;
+        $needle = self::PHP_FILES_IN_SRC;
+        $rootPath = realpath(__DIR__ . '/../../');
+        $badWords = "'var_dump|die'";
+
+        foreach ($files as $file) {
+            if (!preg_match($needle, $file)) {
+                continue;
+            }
+
+            exec("/usr/bin/grep -H -i -n -E {$badWords} $file 2>&1", $result, $retVal);
+            if (!$retVal) {
+                foreach ($result as $line) {
+                    $this->output->writeln(sprintf('<error>%s</error>', $line));
                 }
+                $succeed = false;
             }
         }
 
