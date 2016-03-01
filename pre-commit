@@ -170,7 +170,7 @@ class CodeQualityTool extends Application
                 continue;
             }
 
-            $processBuilder = new ProcessBuilder(['/usr/bin/php', '/usr/local/bin/phpmd', $file, 'text', 'codesize,unusedcode,naming']);
+            $processBuilder = new ProcessBuilder(['/usr/bin/php', '/usr/local/bin/phpmd', $file, 'text', 'codesize,unusedcode,naming,controversial']);
             $processBuilder->setWorkingDirectory($rootPath);
             $process = $processBuilder->getProcess();
             $process->run();
